@@ -1,29 +1,38 @@
+# Define provider configuration for Azure
 provider "azurerm" {
   features {}
-
-  client_id       = var.AZURE_CLIENT_ID
-  client_secret   = var.AZURE_SECRET
-  subscription_id = var.AZURE_SUBSCRIPTION_ID
-  tenant_id       = var.AZURE_TENANT_ID
+  client_id       = "80016b05-b0ca-4a8e-b5a9-39b5b70a5153"
+  client_secret   = "f0fcaf35-a56d-4998-be7b-b712432bec59"
+  subscription_id = "209801ee-166f-436c-93e4-9327ecbc3b82"
+  tenant_id       = "c367e5f6-985f-4a71-860b-bced391d356c"
 }
 
-variable "AZURE_CLIENT_ID" {}
-variable "AZURE_SECRET" {}
-variable "AZURE_SUBSCRIPTION_ID" {}
-variable "AZURE_TENANT_ID" {}
+# Define variables
+variable "vm_name" {
+  description = "Name for the Azure VM"
+  default     = "myVM"
+}
 
+variable "location" {
+  description = "Azure region for resource deployment"
+  default     = "East US"
+}
+
+# Create a resource group
 resource "azurerm_resource_group" "example" {
   name     = "myResourceGroup"
-  location = "East US"
+  location = var.location
 }
 
+# Create a virtual network
 resource "azurerm_virtual_network" "example" {
   name                = "myVnet"
   address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.example.location
+  location            = var.location
   resource_group_name = azurerm_resource_group.example.name
 }
 
+# Create a subnet
 resource "azurerm_subnet" "example" {
   name                 = "mySubnet"
   resource_group_name  = azurerm_resource_group.example.name
@@ -31,16 +40,18 @@ resource "azurerm_subnet" "example" {
   address_prefixes     = ["10.0.1.0/24"]
 }
 
+# Create a public IP address
 resource "azurerm_public_ip" "example" {
   name                = "myPublicIP"
-  location            = azurerm_resource_group.example.location
+  location            = var.location
   resource_group_name = azurerm_resource_group.example.name
   allocation_method   = "Static"
 }
 
+# Create a network security group with an inbound rule for SSH
 resource "azurerm_network_security_group" "example" {
   name                = "myNetworkSecurityGroup"
-  location            = azurerm_resource_group.example.location
+  location            = var.location
 
   security_rule {
     name                       = "SSH"
@@ -55,9 +66,10 @@ resource "azurerm_network_security_group" "example" {
   }
 }
 
+# Create a network interface
 resource "azurerm_network_interface" "example" {
   name                = "myNIC"
-  location            = azurerm_resource_group.example.location
+  location            = var.location
   resource_group_name = azurerm_resource_group.example.name
 
   ip_configuration {
@@ -67,9 +79,10 @@ resource "azurerm_network_interface" "example" {
   }
 }
 
+# Create an Ubuntu Linux VM
 resource "azurerm_linux_virtual_machine" "example" {
-  name                = "myVM"
-  location            = azurerm_resource_group.example.location
+  name                = var.vm_name
+  location            = var.location
   resource_group_name = azurerm_resource_group.example.name
   network_interface_ids = [azurerm_network_interface.example.id]
   size                = "Standard_DS1_v2"
@@ -84,12 +97,7 @@ resource "azurerm_linux_virtual_machine" "example" {
   }
 }
 
-resource "null_resource" "ansible_trigger" {
-  triggers = {
-    vm_id = azurerm_virtual_machine.example.id
-  }
-
-  provisioner "local-exec" {
-    command = "echo Trigger Ansible here (replace this with your logic)"
-  }
+# Output the public IP address of the VM
+output "public_ip" {
+  value = azurerm_public_ip.example.ip_address
 }
