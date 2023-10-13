@@ -1,0 +1,31 @@
+---
+- name: Install Tomcat on Azure VM
+  hosts: myVM # Replace with your VM's hostname or IP address
+  become: yes
+
+  tasks:
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
+
+    - name: Install OpenJDK and Tomcat packages
+      apt:
+        name:
+          - default-jdk
+          - tomcat9
+          - tomcat9-admin
+          - tomcat9-examples
+        state: present
+
+    - name: Deploy a sample web application
+      copy:
+        src: /path/to/your/sample.war
+        dest: /var/lib/tomcat9/webapps/sample.war
+      notify: Restart Tomcat
+
+  handlers:
+    - name: Restart Tomcat
+      service:
+        name: tomcat9
+        state: restarted
+
