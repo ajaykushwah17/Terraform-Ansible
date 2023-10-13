@@ -1,38 +1,34 @@
-# Define provider configuration for Azure
+terraform {
+  required_version = ">=0.12"
+
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~>2.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~>3.0"
+    }
+  }
+}
+
 provider "azurerm" {
   features {}
-  client_id       = "80016b05-b0ca-4a8e-b5a9-39b5b70a5153"
-  client_secret   = "f0fcaf35-a56d-4998-be7b-b712432bec59"
-  subscription_id = "209801ee-166f-436c-93e4-9327ecbc3b82"
-  tenant_id       = "c367e5f6-985f-4a71-860b-bced391d356c"
 }
 
-# Define variables
-variable "vm_name" {
-  description = "Name for the Azure VM"
-  default     = "myVM"
-}
-
-variable "location" {
-  description = "Azure region for resource deployment"
-  default     = "East US"
-}
-
-# Create a resource group
 resource "azurerm_resource_group" "example" {
   name     = "myResourceGroup"
-  location = var.location
+  location = "eastus"
 }
 
-# Create a virtual network
 resource "azurerm_virtual_network" "example" {
   name                = "myVnet"
-  address_space       = ["10.0.0.0/16"]
-  location            = var.location
+  location            = azurerm_resource_group.example.location
   resource_group_name = azurerm_resource_group.example.name
+  address_space       = ["10.0.0.0/16"]
 }
 
-# Create a subnet
 resource "azurerm_subnet" "example" {
   name                 = "mySubnet"
   resource_group_name  = azurerm_resource_group.example.name
@@ -40,18 +36,17 @@ resource "azurerm_subnet" "example" {
   address_prefixes     = ["10.0.1.0/24"]
 }
 
-# Create a public IP address
 resource "azurerm_public_ip" "example" {
   name                = "myPublicIP"
-  location            = var.location
+  location            = azurerm_resource_group.example.location
   resource_group_name = azurerm_resource_group.example.name
   allocation_method   = "Static"
 }
 
-# Create a network security group with an inbound rule for SSH
 resource "azurerm_network_security_group" "example" {
   name                = "myNetworkSecurityGroup"
-  location            = var.location
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
 
   security_rule {
     name                       = "SSH"
@@ -66,38 +61,43 @@ resource "azurerm_network_security_group" "example" {
   }
 }
 
-# Create a network interface
 resource "azurerm_network_interface" "example" {
   name                = "myNIC"
-  location            = var.location
+  location            = azurerm_resource_group.example.location
   resource_group_name = azurerm_resource_group.example.name
 
   ip_configuration {
     name                          = "internal"
     subnet_id                     = azurerm_subnet.example.id
     private_ip_address_allocation = "Dynamic"
+    public_ip_address_id           = azurerm_public_ip.example.id
   }
 }
 
-# Create an Ubuntu Linux VM
-resource "azurerm_linux_virtual_machine" "example" {
-  name                = var.vm_name
-  location            = var.location
-  resource_group_name = azurerm_resource_group.example.name
+resource "azurerm_virtual_machine" "example" {
+  name                  = "myVM"
+  location              = azurerm_resource_group.example.location
+  resource_group_name   = azurerm_resource_group.example.name
   network_interface_ids = [azurerm_network_interface.example.id]
-  size                = "Standard_DS1_v2"
-  admin_username      = "azureuser"
-  disable_password_authentication = true
+  vm_size               = "Standard_DS1_v2"
 
-  image_reference {
-    offer     = "UbuntuServer"
-    publisher = "Canonical"
-    sku       = "16.04-LTS"
+  storage_image_reference {
+    offer     = "CentOS"
+    publisher = "OpenLogic"
+    sku       = "7.5"
     version   = "latest"
   }
-}
 
-# Output the public IP address of the VM
-output "public_ip" {
-  value = azurerm_public_ip.example.ip_address
+  os_profile {
+    computer_name  = "hostname"
+    admin_username = "azureuser"
+  }
+
+  os_profile_linux_config {
+    disable_password_authentication = true
+    ssh_keys {
+      path     = "/home/azureuser/.ssh/authorized_keys"
+      key_data = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDFUeQxSYd+j62oq03FdqLdiXWduVDzcUbLDF8V+aBM9XXsYUpw0M9Xnc8Itxnz/Gua1YjQ+ZsF4hHJ0seA1"
+    }
+  }
 }
