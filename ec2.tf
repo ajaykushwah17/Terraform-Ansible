@@ -100,4 +100,9 @@ resource "azurerm_virtual_machine" "example" {
       key_data = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDFUeQxSYd+j62oq03FdqLdiXWduVDzcUbLDF8V+aBM9XXsYUpw0M9Xnc8Itxnz/Gua1YjQ+ZsF4hHJ0seA1"
     }
   }
+  
+  storage_os_disk {
+    caching           = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
 }
