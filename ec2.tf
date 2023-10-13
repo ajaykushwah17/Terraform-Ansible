@@ -102,7 +102,8 @@ resource "azurerm_virtual_machine" "example" {
   }
   
   storage_os_disk {
-    caching           = "ReadWrite"
-    storage_account_type = "Standard_LRS"
+    name              = "myOsDisk"
+    create_option     = "FromImage"
+    managed_disk_type = "Premium_LRS"
   }
 }
