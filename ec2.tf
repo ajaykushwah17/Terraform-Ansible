@@ -1,10 +1,16 @@
 provider "azurerm" {
   features {}
+
   client_id       = var.AZURE_CLIENT_ID
   client_secret   = var.AZURE_SECRET
   subscription_id = var.AZURE_SUBSCRIPTION_ID
   tenant_id       = var.AZURE_TENANT_ID
 }
+
+variable "AZURE_CLIENT_ID" {}
+variable "AZURE_SECRET" {}
+variable "AZURE_SUBSCRIPTION_ID" {}
+variable "AZURE_TENANT_ID" {}
 
 resource "azurerm_resource_group" "example" {
   name     = "myResourceGroup"
@@ -51,4 +57,39 @@ resource "azurerm_network_security_group" "example" {
 
 resource "azurerm_network_interface" "example" {
   name                = "myNIC"
-  location            =
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.example.id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
+resource "azurerm_linux_virtual_machine" "example" {
+  name                = "myVM"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  network_interface_ids = [azurerm_network_interface.example.id]
+  size                = "Standard_DS1_v2"
+  admin_username      = "azureuser"
+  disable_password_authentication = true
+
+  image_reference {
+    offer     = "UbuntuServer"
+    publisher = "Canonical"
+    sku       = "16.04-LTS"
+    version   = "latest"
+  }
+}
+
+resource "null_resource" "ansible_trigger" {
+  triggers = {
+    vm_id = azurerm_virtual_machine.example.id
+  }
+
+  provisioner "local-exec" {
+    command = "echo Trigger Ansible here (replace this with your logic)"
+  }
+}
