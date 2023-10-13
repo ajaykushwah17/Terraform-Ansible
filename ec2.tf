@@ -33,4 +33,42 @@ resource "azurerm_network_security_group" "example" {
   location = azurerm_resource_group.example.location
 
   security_rule {
-    name                       =
+    name                       = "SSH"
+    priority                   = 1001
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+}
+
+resource "azurerm_network_interface" "example" {
+  name                = "myNIC"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.example.id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
+resource "azurerm_linux_virtual_machine" "example" {
+  name                = "myVM"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  network_interface_ids = [azurerm_network_interface.example.id]
+  size                = "Standard_DS1_v2"
+  admin_username      = "azureuser"
+  disable_password_authentication = true
+  image_reference {
+    offer     = "CentOS"
+    publisher = "OpenLogic"
+    sku       = "7.5"
+    version   = "latest"
+  }
+}
