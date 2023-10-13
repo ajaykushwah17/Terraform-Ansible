@@ -1,2 +1,0 @@
-- name: Generate Environment File
-  run: echo "MY_OUTPUT=$(terraform output my_output)" >> $GITHUB_ENV
